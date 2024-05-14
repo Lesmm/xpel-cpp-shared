@@ -1,0 +1,60 @@
+// https://stackoverflow.com/a/69100971
+//In Gradle 7.x The maven plugin has been removed. You should use the maven-publish plugin instead.
+apply plugin: 'maven-publish'
+
+project.ext {
+
+    RELEASE_REPO_URL = "http://maven.xpel.local/repository/android_release/"
+    SNAPSHOT_REPO_URL = "http://maven.xpel.local/repository/android_snapshots/"
+
+    // use by maven-publish plugin
+    publishToMaven = true
+
+    // gradle usage: groupId:artifactId:publishVersion
+    groupId = "com.xpel.android"
+    artifactId = "xpel-cpp-shared"
+    publishVersion = "7.0.5-SNAPSHOT"
+
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.findByName('release') // or 'debug'
+                groupId = project.ext.groupId
+                artifactId = project.ext.artifactId
+                version = project.ext.publishVersion
+            }
+        }
+    }
+}
+
+// 推到 local repository 时执行一下复制重命名，确实有点麻烦
+task renameAar(type: Copy) {
+    def oldAARName = "${project.name}-release.aar"
+    from("$buildDir/outputs/aar/")
+    include(oldAARName)
+    into("$buildDir/outputs/aar/")
+    rename(oldAARName, "${artifactId}-${publishVersion}.aar")
+}
+
+apply plugin: 'xpel-buildhelper'
+
+// Usage:
+// env JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home/ ./gradlew :module:assembleRelease
+// env JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home/ ./gradlew :module:publishToMavenLocal
+// env JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home/ ./gradlew :module:publish
+
+
+// In build.gradle:
+//buildscript {
+//    dependencies {
+//        classpath 'com.xpel.lib.build:buildhelper:1.0.0_gradle7.2-SNAPSHOT'  // mavenLocal()      --->HERE
+//    }
+//}
+//plugins {
+//    id 'com.android.library'
+//    id 'maven-publish'
+//}
+//apply from: "${rootDir}/module/__YOUR_MODULE_PUBLISH__.gradle"              --->HERE
